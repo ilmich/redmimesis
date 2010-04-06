@@ -42,7 +42,7 @@
 		
 		//REDIS style api
 		public function set($key, $value) {			
-			$data = array(json_encode($value));
+			$data = array($value);
 			@$this->_db->insertRow(array($key => $data),false);				
 		}
 		
@@ -50,7 +50,7 @@
 			$data = $this->_db->getRow($key,false);
 			if (!$data === false) {
 				$arr =  array_shift($data);				
-				return json_decode($arr[0]);				
+				return $arr[0];				
 			}
 			return null;	
 		}	
