@@ -29,31 +29,41 @@
 		}
 		
 		public function query() {
-			return $this->_db->query();
+			return @$this->_db->query();
 		}
 		
 		public function entries() {
-			return $this->_db->entries();
+			return @$this->_db->entries();
 		}
 		
 		public function refresh() {
-			return $this->_db->refresh();
+			return @$this->_db->refresh();
 		}
 		
 		//REDIS style api
 		public function set($key, $value) {			
 			$data = array($value);
 			@$this->_db->insertRow(array($key => $data),false);				
-		}
+		}	
 		
 		public function get($key) {
-			$data = $this->_db->getRow($key,false);
+			$data = @$this->_db->getRow($key,false);
 			if (!$data === false) {
 				$arr =  array_shift($data);				
 				return $arr[0];				
 			}
 			return null;	
 		}	
+		
+		public function searchKeys($key) {
+			
+			$rows = $this->_db->getRow($key,true);
+			if (empty($rows)) {
+				return false;
+			}		
+			
+			return array_keys($rows);
+		}
 		
 		public function del($keys) {
 			
@@ -150,6 +160,39 @@
 			
 			return $slice;			
 		}
+		
+		// Other useful functions
+		function getKeys($keys) {
+			
+			$resultset = array();
+			
+			if (!is_array($keys)) {
+				$keys = array($keys);
+			}
+			
+			foreach($keys as $key) {
+				$resultset[$key] = $this->get($key);
+			}
+			
+			return $resultset;
+		}
+		
+		public function setKeys($keyValues) {
+			
+			$count = 0;
+			
+			if (!is_array($keyValues)) {
+				throw new Exception("The parameter keyValues must be an array");
+			}		
+			
+			foreach ($keyValues as $key => $value) {
+				$this->set($key,$value);
+				$count++;
+			}
+			
+			return $count;
+		}
+		
 
 		
 	}	
