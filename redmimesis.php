@@ -1,5 +1,7 @@
 <?php
 
+	define("REDMIMESIS_VERSION","0,1,0");
+
 	require_once "mimesis/Mimesis.php";
 
 	class RedMimesis {
@@ -7,7 +9,7 @@
 		private $_db;
 		
 		public function __construct($dataDir, $tableName, $tsName) {
-			$this->_db = new Mimesis($dataDir,$tableName,$tsName);	
+			$this->_db = new Mimesis($dataDir,$tableName,$tsName);				
 		}
 		
 		public function lock($polling=1) {
@@ -47,9 +49,11 @@
 		}	
 		
 		public function get($key) {
+			
 			$data = @$this->_db->getRow($key,false);
+			
 			if (!$data === false) {
-				$arr =  array_shift($data);				
+				$arr =  array_shift($data);								
 				return $arr[0];				
 			}
 			return null;	
