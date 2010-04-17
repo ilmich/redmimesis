@@ -78,11 +78,7 @@
 			}	
 			
 			foreach ($keys as $key) {
-				if ($this->exists($key)) {
-					if ($this->_db->deleteRow($key,false,false)) {
-						$count++;
-					}
-				}	
+				$this->_db->deleteRow($key,false,false);				
 			}
 			
 			return $count;
@@ -141,6 +137,8 @@
 			$this->set($key,$data);
 		}
 		
+		
+		
 		public function lrange($key,$offset,$lenght) {
 			$data = $this->get($key); 
 			if (is_null($data)) {
@@ -195,6 +193,24 @@
 			}
 			
 			return $count;
+		}
+		
+		public function lremove($key,$values) {
+			
+			$data = $this->get($key);
+		
+			if (is_null($data)) {
+				return false;
+			}
+			
+			if (!is_array($values)) {
+				$values = array($values);
+			}
+
+			$data = array_diff($data,$values);
+			$this->set($key,$data);
+			return true;
+			
 		}
 		
 
