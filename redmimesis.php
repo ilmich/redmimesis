@@ -78,7 +78,8 @@
 			}	
 			
 			foreach ($keys as $key) {
-				$this->_db->deleteRow($key,false,false);				
+				$this->_db->deleteRow($key,false,false);		
+				$count++;		
 			}
 			
 			return $count;
