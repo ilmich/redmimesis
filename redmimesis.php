@@ -1,6 +1,6 @@
 <?php
 
-	define("REDMIMESIS_VERSION","0,1,0");
+	define("REDMIMESIS_VERSION","0.2.0");
 
 	require_once "mimesis/Mimesis.php";
 
@@ -20,15 +20,20 @@
 			if (!is_writable($dataDir)) {
 				throw new Exception("The directory $dataDir not exists or isn't writable");
 			}			
-			if (file_exists($tableName) && !is_writable($tableName)) {
-				throw new Exception("The data file $tableName must be writable");
-			}			
+					
 			$fileName = basename($tableName);			
 			if (is_null($tsName)) {
 				$tsName = $fileName."_ts";
 			}			
+
 			if (!array_key_exists($tableName,self::$_tables)) {
-				self::$_tables[$tableName] = new RedMimesis($dataDir,$fileName,$tsName);
+				$db = new RedMimesis($dataDir,$fileName,$tsName);
+				
+				if (file_exists($db->table(true)) && !is_writable($db->table(true))) {
+					throw new Exception("The data file $tableName must be writable");
+				}		
+						
+				self::$_tables[$tableName] = $db;
 			}			
 			return self::$_tables[$tableName];
 			
@@ -43,16 +48,14 @@
 		}		
 		
 		public function exists($key) {
-						
+
+			//check table
+			if (!file_exists($this->table(true))) {
+				return false;
+			}
 			return !($this->getRow($key,false) === false);
 			
 		}		
-		
-		public function refresh() {
-			
-			return parent::refresh(false);
-			
-		}
 		
 		//REDIS style api		
 		public function set($key, $value) {
@@ -63,17 +66,33 @@
 		}		
 		
 		public function get($key) {
-									
-			$data = $this->getRow($key,false);			
-			if (!$data === false) {
-				return $this->_transformOutputValue($data[$key]);						
-			}
-			return null;
+			
+			if (!is_array($key) || count($key) == 1) {
 				
+				//check table
+				if (!file_exists($this->table(true))) {
+					return null;
+				}
+				
+				$data = $this->getRow($key,false);
+				if ($data === false) {
+					return null;
+				}
+				return $this->_transformOutputValue($data[$key]);
+			} 
+			
+			$preg = $this->_keysToPreg($key);		
+			return $this->searchKeys($preg);	
+							
 		}		
 	
 		public function del($keys) {
-						
+
+			//check table
+			if (!file_exists($this->table(true))) {
+				return false;
+			}
+			
 			$count = 0;			
 			
 			if (!is_array($keys) || count($keys) == 1) {
@@ -90,6 +109,10 @@
 		public function type($key) {
 			
 			$value = $this->get($key);
+			if (is_null($value)) {
+				return false;
+			}
+			
 			if (is_object($value)) {
 				return get_class($value);
 			}
@@ -121,7 +144,8 @@
 			if (is_null($value) || !is_numeric($value)) {
 				$value = 0;				
 			}
-			$this->set($key,$value+$incr);
+			$value += $incr;
+			$this->set($key,$value);
 			return $value;
 			
 		}
@@ -158,7 +182,7 @@
 						
 		}
 		
-		public function rrange($key,$offset,$lenght,$reverse=true) {
+		public function rrange($key,$offset,$lenght, $reverse=true) {
 			
 			$data = $this->get($key);			
 			if (is_null($data)) {
@@ -171,19 +195,23 @@
 			return $slice;
 						
 		}
-		
-		// Other useful functions
-		function getKeys($keys) {
+ 
+
+		public function searchKeys($preg) {
 			
-			$resultset = array();			
-			if (!is_array($keys) || count($keys) == 1) {
-				return $this->get($keys);
-			}			
-			$preg = $this->_keysToPreg($keys);		
-			$data = $this->getRow($preg,true);			
+			//check table
+			if (!file_exists($this->table(true))) {
+				return null;
+			}
+			
+			$data = $this->getRow($preg,true);
+			
 			if ($data === false) {
 				return null;
-			}	
+			}
+			
+			$resultset = array();						
+			
 			foreach($data as $key => $value) {				
 				$resultset[$key] = $this->_transformOutputValue($value);
 			}
@@ -191,7 +219,8 @@
 			return $resultset;
 			
 		}
- 
+		
+		
 		public function setKeys($keyValues) {
 			
 			$count = 0;
