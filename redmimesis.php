@@ -1,6 +1,6 @@
 <?php
 
-	define("REDMIMESIS_VERSION","0.2.0");
+	define("REDMIMESIS_VERSION","0.3.0");
 
 	require_once "mimesis/Mimesis.php";
 
