@@ -2,9 +2,14 @@
 
 	define("REDMIMESIS_VERSION","0.3.0");
 
-	require_once "mimesis/Mimesis.php";
+	require_once "mimesis/Mimesis.php";	
 
 	class RedMimesis extends Mimesis{		
+		
+		private $_sets = array();
+		private $_deletes = array();
+		private $_transaction = false;
+		private $_lock = false;		
 		
 		private static $_tables = array();
 		
@@ -12,7 +17,7 @@
 			
 			parent::__construct($dataDir,$tableName, $tsName);
 			
-		}		
+		}
 		
 		public static function connect($tableName,$tsName = null) {
 			
@@ -33,11 +38,11 @@
 					throw new Exception("The data file $tableName must be writable");
 				}		
 						
-				self::$_tables[$tableName] = $db;
+		 		self::$_tables[$tableName] = $db;
 			}			
 			return self::$_tables[$tableName];
 			
-		}		
+		}	
 		
 		public function dump_db() {
 			
@@ -45,7 +50,80 @@
 			var_dump($this->query());
 			echo "</pre>";
 			
-		}		
+		}
+
+		public function lock($polling = 1){
+			if (!$this->_lock) {
+				$this->_lock = parent::lock($polling);	
+			}						
+			return $this->_lock;
+			
+		}
+		
+		public function release(){
+			if($this->_lock) {	
+				$this->_lock = !parent::release();
+			}
+			return !$this->_lock;
+			
+		}
+		
+		public function begin() {
+			$this->_transaction = true;
+			$this->lock(); //lock table
+		}
+		
+		public function commit() {
+			
+			$this->_transaction = false;
+			
+			if (count($this->_sets) > 0) {			
+				if (!$this->setKeys($this->_sets)){			
+					$this->release();
+					return false;
+				}
+			}
+			
+			if (count($this->_deletes) > 0) {								
+				if (!$this->del($this->_deletes)){					
+					$this->release();
+					return false;
+				}
+			}
+			
+			$this->release();	
+		}
+		
+		public function rollback() {
+			
+			$this->_transaction = false;
+			$this->_sets = array();
+			$this->_deletes = array();
+			
+			$this->release();
+		}
+		
+		public function isInTransaction() {
+			return $this->_transaction;
+		}
+		
+		public function query() {
+			
+			//check table
+			if (!file_exists($this->table(true))) {
+				return false;
+			}
+			return parent::query();
+		}
+		
+		public function refresh() {
+			//check table
+			if (file_exists($this->table(true))) {
+				return parent::refresh(false);
+			}
+			
+			return true;
+		}
 		
 		public function exists($key) {
 
@@ -58,17 +136,21 @@
 		}		
 		
 		//REDIS style api		
-		public function set($key, $value) {
-								
-			$data = $this->_transformInputValue($value);			
+		public function set($key, $value) {		
+
+			if ($this->isInTransaction()) {
+				$this->_sets[$key] = $value;
+				return true;
+			}
+			
+			$data = $this->_transformInputValue($value);
 			return $this->insertRow(array($key => $data),false);
 			
 		}		
 		
-		public function get($key) {
+		public function get($key) {			
 			
-			if (!is_array($key) || count($key) == 1) {
-				
+			if (!is_array($key)) {				
 				//check table
 				if (!file_exists($this->table(true))) {
 					return null;
@@ -87,16 +169,23 @@
 		}		
 	
 		public function del($keys) {
-
+			
+			if ($this->isInTransaction()) {
+				if (!is_array($keys)) {
+					$keys = array($keys);
+				}			
+				
+				$this->_deletes = array_merge($this->_deletes,$keys);				
+				return count($keys);
+			}
+			
 			//check table
 			if (!file_exists($this->table(true))) {
 				return false;
-			}
+			}			
 			
-			$count = 0;			
-			
-			if (!is_array($keys) || count($keys) == 1) {
-				$this->deleteRow($key,false,false);
+			if (!is_array($keys)) {
+				$this->deleteRow($keys,false,false);
 				return 1;
 			}			
 			
@@ -233,6 +322,12 @@
 			foreach ($keyValues as $key => $value) {
 				$data[$key] = $this->_transformInputValue($value);
 			}			
+			
+			if ($this->isInTransaction()) {
+				$this->_sets = array_merge($this->_sets,$data);
+				return true;
+			}
+			
 			if (!$this->insertRow($data,false)) {
 				return false;
 			}			
@@ -255,24 +350,21 @@
 			
 		}		
 		
-		private function _transformInputValue($value) {
-						
-			return array($value);
-			
+		private function _transformInputValue($value) {						
+			return array($value);			
 		}		
 		
-		private function _transformOutputValue($value) {
-			
-			return array_shift($value);			
-				
+		private function _transformOutputValue($value) {			
+			return array_shift($value);							
 		}
 		
 		private function _keysToPreg($keys) {
 			
-			if (!is_array($keys) || count ($keys) == 1) {
+			if (!is_array($keys)) {
 				return "/".$keys."/";	
-			}			
-			return "/".implode("|",$keys)."/";
+			}
+						
+			return "/^(".implode("|",$keys).")$/";			
 			
 		}
 		
