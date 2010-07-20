@@ -1,6 +1,6 @@
 <?php
 
-	define("REDMIMESIS_VERSION","0.3.0");
+	define("REDMIMESIS_VERSION","0.4.0");
 
 	require_once "mimesis/Mimesis.php";	
 
@@ -70,7 +70,7 @@
 		
 		public function begin() {
 			$this->_transaction = true;
-			$this->lock(); //lock table
+			return $this->lock(); //lock table
 		}
 		
 		public function commit() {
@@ -91,7 +91,7 @@
 				}
 			}
 			
-			$this->release();	
+			return $this->release();	
 		}
 		
 		public function rollback() {
@@ -100,7 +100,7 @@
 			$this->_sets = array();
 			$this->_deletes = array();
 			
-			$this->release();
+			return $this->release();
 		}
 		
 		public function isInTransaction() {
@@ -148,7 +148,29 @@
 			
 		}		
 		
-		public function get($key) {			
+		public function get($key) {
+
+			$resultset = array(); //empty result array			
+			$keyflip = null; //flipped array of keys for internal use
+			
+			if (is_array($key)) {
+				$keyflip = array_flip($key);
+			}
+			
+			//if transaction is enabled check the internal array for values first
+			if ($this->isInTransaction()) { 
+				if (!is_array($key)) { //check single key
+					if (array_key_exists($key,$this->_sets)) {
+						return $this->_sets[$key];
+					}
+				}else { //check array of keys
+					$resultset = array_intersect_key($this->_sets,$keyflip);
+					//if all the key is contained in the internal array return the resultset
+					if (count($resultset) == count(key)) {
+						return $resultset;
+					}
+				}			
+			}			
 			
 			if (!is_array($key)) {				
 				//check table
@@ -163,8 +185,18 @@
 				return $this->_transformOutputValue($data[$key]);
 			} 
 			
-			$preg = $this->_keysToPreg($key);		
-			return $this->searchKeys($preg);	
+			//compute remaining keys to search
+			$key = array_flip(array_diff_key($keyflip,$resultset));
+			
+			$preg = $this->_keysToPreg($key);
+			$query = $this->searchKeys($preg);
+			if (!empty($resultset)) {
+				if (!is_null($query)) {
+					return array_merge($resultset,$query);
+				}
+				return $resultset;
+			}
+			return $query; 	
 							
 		}		
 	
@@ -361,7 +393,7 @@
 		private function _keysToPreg($keys) {
 			
 			if (!is_array($keys)) {
-				return "/".$keys."/";	
+				return "/^".$keys."$/";	
 			}
 						
 			return "/^(".implode("|",$keys).")$/";			
