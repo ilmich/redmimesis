@@ -1,0 +1,11 @@
+Mimesis is a simple but powerful flat file database for php.
+Many of its strengths and weaknesses are common to all databases of this type, but
+has a couple of features that make it special:
+
+- can be used as a database keyword / value that can store PHP objects, or simple strings
+- works with low-level file by inserting new keys at the bottom the file, this makes it very fast even with amounts of data considerable
+- is written in pure PHP, so there are no strange requirements
+
+Redmimesis is a wrapper that implements functionality similar to the famous database key/value REDIS.
+
+Currently only a small set of features has been reproduced, but over time I hope to develop other.
