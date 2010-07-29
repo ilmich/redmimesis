@@ -1,6 +1,6 @@
 <?php
 
-	define("REDMIMESIS_VERSION","0.4.0");
+	define("REDMIMESIS_VERSION","0.5.0");
 
 	require_once "mimesis/Mimesis.php";	
 
@@ -36,7 +36,12 @@
 				
 				if (file_exists($db->table(true)) && !is_writable($db->table(true))) {
 					throw new Exception("The data file $tableName must be writable");
-				}		
+				}
+				
+				//if the table file not exists initialize table
+				if (!file_exists($db->table(true))) {
+					$db->setKeys(array("__version" => REDMIMESIS_VERSION,"__creationTime" => time()));
+				}
 						
 		 		self::$_tables[$tableName] = $db;
 			}			
