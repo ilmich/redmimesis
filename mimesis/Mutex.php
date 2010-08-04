@@ -20,7 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
  * This file contains the code for the Mutex class
  * @author Grim Pirate <grimpirate_jrs@yahoo.com>
  * @link http://mimesis.110mb.com/
- * @version 1.04
+ * @version 1.1
  * @since 1.0n
  * @package Mimesis
  */
@@ -34,13 +34,6 @@ error_reporting(E_ALL);
  */
 
 define('MUTEXCLASS_DIR', substr(realpath(__FILE__), 0, -1 * strlen(basename(__FILE__))));
-
-/**
- * Defines the timeout seconds for a lock
- *
- * @access private
- */
-define('MUTE_OUT', 60);		// 60 is assigned because typically PHP scripts have an maximum execution time of 30 sec.
 
 /**
  * The Mutex class creates a temporary file in order to ensure that exclusive locks are acquired whenever a file is accessed.
@@ -89,14 +82,16 @@ class Mutex {
 	 * A method that sets the lock on a file
 	 *
 	 * @param integer $polling specifies the sleep time (seconds) for the lock to wait in order to reacquire the lock if it fails.
+	 * @param integer $timeout specifies the duration of time (seconds) a lock should persist in case of a defunct condition.
 	 * @return boolean TRUE on success FALSE on failure
 	 */
-	function acquireLock($polling = 1){
+	function acquireLock($polling = 1, $timeout = 60){
 		/**
 		 * Parameter passing error handling
 		 */
 
 		if(!is_int($polling) || $polling < 1) $polling = 1;
+		if(!is_int($timeout) || $timeout < 1) $timeout = 60;
 
 		/**
 		 * Code section
@@ -107,7 +102,7 @@ class Mutex {
 			sleep($polling);
 
 		// If unable to write the timeout fail lock
-		if(!@fwrite($this->fp, (time() + MUTE_OUT)))
+		if(!@fwrite($this->fp, (time() + $timeout)))
 			return !trigger_error('[Mutex.php] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 
 		// Successful lock

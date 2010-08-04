@@ -20,7 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
  * This file contains the code for the Mimesis class
  * @author Grim Pirate <grimpirate_jrs@yahoo.com>
  * @link http://mimesis.110mb.com/
- * @version 2.0n
+ * @version 2.1n
  * @since 1.0n
  * @package Mimesis
  */
@@ -143,13 +143,14 @@ class Mimesis{
 	 * A method that locks a table
 	 *
 	 * @param integer $polling specifies the sleep time (seconds) for the lock to wait in order to reacquire the lock if it fails.
+	 * @param integer $timeout specifies the duration of time (seconds) a lock should persist in case of a time out condition.
 	 * @return boolean TRUE on success FALSE on failure
 	 */
-	function lock($polling = 1){
+	function lock($polling = 1, $timeout = 60){
 		// For atomicity we have to lock the table
 		$mutex = new Mutex($this->table);
 
-		if(!$mutex->acquireLock($polling))
+		if(!$mutex->acquireLock($polling, $timeout))
 			return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 			
 		$this->mutex = $mutex;
@@ -209,11 +210,12 @@ class Mimesis{
 					$ret[$rowLabel] = $polarizer;
 				}
 			}
-		}else{			
+		}else{
+			$tableStruct[0] = array_flip($tableStruct[0]);
 			$key = sanitize(serialize($search));
-			if(in_array($key,$tableStruct[0])){
-				$key = array_shift(array_keys($tableStruct[0],$key));					
-				$key *= 4;				
+			if(array_key_exists($key, $tableStruct[0])){
+				$key = $tableStruct[0][$key];
+				$key *= 4;
 				if(false === $values = file_cull_contents($this->table, (ord($tableStruct[1][$key]) << 24) + (ord($tableStruct[1][$key + 1]) << 16) + (ord($tableStruct[1][$key + 2]) << 8) + ord($tableStruct[1][$key + 3]), (ord($tableStruct[2][$key]) << 24) + (ord($tableStruct[2][$key + 1]) << 16) + (ord($tableStruct[2][$key + 2]) << 8) + ord($tableStruct[2][$key + 3])))
 					return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 				$polarizer = new Polarizer($tableStruct[3], substr($values, 0, -2));
@@ -247,7 +249,7 @@ class Mimesis{
 		$tableStruct[0] = array_map('unserialize', $tableStruct[0]);
 		$tableStruct[1] = desanitize($tableStruct[1]);
 		$tableStruct[2] = desanitize($tableStruct[2]);
-		
+
 		$modStruct = array();
 		foreach($tableStruct[0] as $key => $value){
 			$key *= 4;
@@ -256,7 +258,6 @@ class Mimesis{
 				return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 			$modStruct[$value] = $polarizer;
 		}
-		
 		return $modStruct;
 	}
 	
@@ -286,7 +287,6 @@ class Mimesis{
 	 * @return boolean TRUE on success FALSE on failure
 	 */
 	function insertRow($data, $atomic = true){
-				
 		// Parameters
 		if(!is_array($data) || empty($data))
 			return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
