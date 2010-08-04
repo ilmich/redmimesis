@@ -416,7 +416,7 @@
 				return $tmp;
 			}
 			if ($type === 'array') {
-				return json_decode($value[0]);
+				return (array)json_decode($value[0]);
 			}
 			settype($value[0],$value[1]);
 			return array_shift($value);							

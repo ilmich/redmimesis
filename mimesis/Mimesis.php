@@ -209,12 +209,11 @@ class Mimesis{
 					$ret[$rowLabel] = $polarizer;
 				}
 			}
-		}else{
-			$tableStruct[0] = array_flip($tableStruct[0]);
+		}else{			
 			$key = sanitize(serialize($search));
-			if(array_key_exists($key, $tableStruct[0])){
-				$key = $tableStruct[0][$key];
-				$key *= 4;
+			if(in_array($key,$tableStruct[0])){
+				$key = array_shift(array_keys($tableStruct[0],$key));					
+				$key *= 4;				
 				if(false === $values = file_cull_contents($this->table, (ord($tableStruct[1][$key]) << 24) + (ord($tableStruct[1][$key + 1]) << 16) + (ord($tableStruct[1][$key + 2]) << 8) + ord($tableStruct[1][$key + 3]), (ord($tableStruct[2][$key]) << 24) + (ord($tableStruct[2][$key + 1]) << 16) + (ord($tableStruct[2][$key + 2]) << 8) + ord($tableStruct[2][$key + 3])))
 					return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 				$polarizer = new Polarizer($tableStruct[3], substr($values, 0, -2));
@@ -248,7 +247,7 @@ class Mimesis{
 		$tableStruct[0] = array_map('unserialize', $tableStruct[0]);
 		$tableStruct[1] = desanitize($tableStruct[1]);
 		$tableStruct[2] = desanitize($tableStruct[2]);
-
+		
 		$modStruct = array();
 		foreach($tableStruct[0] as $key => $value){
 			$key *= 4;
@@ -287,6 +286,7 @@ class Mimesis{
 	 * @return boolean TRUE on success FALSE on failure
 	 */
 	function insertRow($data, $atomic = true){
+				
 		// Parameters
 		if(!is_array($data) || empty($data))
 			return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
