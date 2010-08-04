@@ -211,10 +211,9 @@ class Mimesis{
 				}
 			}
 		}else{
-			$tableStruct[0] = array_flip($tableStruct[0]);
 			$key = sanitize(serialize($search));
-			if(array_key_exists($key, $tableStruct[0])){
-				$key = $tableStruct[0][$key];
+			if(in_array($key,$tableStruct[0])){
+				$key = array_shift(array_keys($tableStruct[0],$key));					
 				$key *= 4;
 				if(false === $values = file_cull_contents($this->table, (ord($tableStruct[1][$key]) << 24) + (ord($tableStruct[1][$key + 1]) << 16) + (ord($tableStruct[1][$key + 2]) << 8) + ord($tableStruct[1][$key + 3]), (ord($tableStruct[2][$key]) << 24) + (ord($tableStruct[2][$key + 1]) << 16) + (ord($tableStruct[2][$key + 2]) << 8) + ord($tableStruct[2][$key + 3])))
 					return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
