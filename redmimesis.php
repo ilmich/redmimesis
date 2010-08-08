@@ -9,7 +9,8 @@
 		private $_sets = array();
 		private $_deletes = array();
 		private $_transaction = false;
-		private $_lock = false;		
+		private $_lock = false;
+		private $_jsonEncode = false;		
 		
 		private static $_tables = array();
 		
@@ -55,6 +56,10 @@
 			var_dump($this->query());
 			echo "</pre>";
 			
+		}
+		
+		public function enableJsonEncode($bool) {
+			$this->_jsonEncode = $bool;
 		}
 
 		public function lock($polling = 1){
@@ -387,7 +392,11 @@
 			
 		}		
 		
-		private function _transformInputValue($value) {	
+		private function _transformInputValue($value) {
+
+			if (!$this->_jsonEncode) {
+				return array($value,"native",null,0);
+			}
 
 			if (is_object($value)) {			
 				if(method_exists($value,"__sleep")) {
@@ -405,6 +414,9 @@
 		private function _transformOutputValue($value) {
 
 			$type = $value[1];
+			if ($type === 'native') {
+				return array_shift($value);
+			}
 			if ($type === 'object') {
 				$tmp = new $value[2]();
 				foreach ((array)json_decode($value[0]) as $key => $value) {
@@ -430,7 +442,7 @@
 						
 			return "/^(".implode("|",$keys).")$/";			
 			
-		}
+		}	
 		
 	}	
 	
