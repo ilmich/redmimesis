@@ -20,7 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
  * This file contains the code for the Mimesis class
  * @author Grim Pirate <grimpirate_jrs@yahoo.com>
  * @link http://mimesis.110mb.com/
- * @version 2.1n
+ * @version 2.12n
  * @since 1.0n
  * @package Mimesis
  */
@@ -199,10 +199,12 @@ class Mimesis{
 		if($preg){
 			$tableStruct[0] = array_map('desanitize', $tableStruct[0]);
 			$tableStruct[0] = array_map('unserialize', $tableStruct[0]);
+			$tableStruct[1] = unpack('N*', $tableStruct[1]);
+			$tableStruct[2] = unpack('N*', $tableStruct[2]);
 			foreach($tableStruct[0] as $key => $rowLabel){
-				$key *= 4;
+				$key++;
 				if(preg_match($search, $rowLabel)){
-					if(false === $values = file_cull_contents($this->table, (ord($tableStruct[1][$key]) << 24) + (ord($tableStruct[1][$key + 1]) << 16) + (ord($tableStruct[1][$key + 2]) << 8) + ord($tableStruct[1][$key + 3]), (ord($tableStruct[2][$key]) << 24) + (ord($tableStruct[1][$key + 1]) << 16) + (ord($tableStruct[1][$key + 2]) << 8) + ord($tableStruct[1][$key + 3])))
+					if(false === $values = file_cull_contents($this->table, $tableStruct[1][$key], $tableStruct[2][$key]))
 						return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 					$polarizer = new Polarizer($tableStruct[3], substr($values, 0, -2));
 					if(false === $polarizer = $polarizer->getArr())
@@ -212,10 +214,9 @@ class Mimesis{
 			}
 		}else{
 			$key = sanitize(serialize($search));
-			if(in_array($key,$tableStruct[0])){
-				$key = array_shift(array_keys($tableStruct[0],$key));					
+			if(false !== $key = array_search($key, $tableStruct[0])){
 				$key *= 4;
-				if(false === $values = file_cull_contents($this->table, (ord($tableStruct[1][$key]) << 24) + (ord($tableStruct[1][$key + 1]) << 16) + (ord($tableStruct[1][$key + 2]) << 8) + ord($tableStruct[1][$key + 3]), (ord($tableStruct[2][$key]) << 24) + (ord($tableStruct[2][$key + 1]) << 16) + (ord($tableStruct[2][$key + 2]) << 8) + ord($tableStruct[2][$key + 3])))
+				if(false === $values = file_cull_contents($this->table, reset(unpack('N', $tableStruct[1][$key] . $tableStruct[1][$key + 1] . $tableStruct[1][$key + 2] . $tableStruct[1][$key + 3])), reset(unpack('N', $tableStruct[2][$key] . $tableStruct[2][$key + 1] . $tableStruct[2][$key + 2] . $tableStruct[2][$key + 3]))))
 					return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 				$polarizer = new Polarizer($tableStruct[3], substr($values, 0, -2));
 				if(false === $polarizer = $polarizer->getArr())
@@ -246,13 +247,13 @@ class Mimesis{
 		
 		$tableStruct[0] = array_map('desanitize', $tableStruct[0]);
 		$tableStruct[0] = array_map('unserialize', $tableStruct[0]);
-		$tableStruct[1] = desanitize($tableStruct[1]);
-		$tableStruct[2] = desanitize($tableStruct[2]);
+		$tableStruct[1] = unpack('N*', desanitize($tableStruct[1]));
+		$tableStruct[2] = unpack('N*', desanitize($tableStruct[2]));
 
 		$modStruct = array();
 		foreach($tableStruct[0] as $key => $value){
-			$key *= 4;
-			$polarizer = new Polarizer($tableStruct[3], substr($rows, (ord($tableStruct[1][$key]) << 24) + (ord($tableStruct[1][$key + 1]) << 16) + (ord($tableStruct[1][$key + 2]) << 8) + ord($tableStruct[1][$key + 3]), (ord($tableStruct[2][$key]) << 24) + (ord($tableStruct[2][$key + 1]) << 16) + (ord($tableStruct[2][$key + 2]) << 8) + ord($tableStruct[2][$key + 3])));
+			$key++;
+			$polarizer = new Polarizer($tableStruct[3], substr($rows, $tableStruct[1][$key], $tableStruct[2][$key]));
 			if(false === $polarizer = $polarizer->getArr())
 				return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 			$modStruct[$value] = $polarizer;
@@ -267,14 +268,12 @@ class Mimesis{
 	 */
 	function entries(){
 		// Code
-		if(false === $tableStruct = file_cull_contents($this->struct, -28, 24, SEEK_END))
+		if(false === $tableStruct = file_cull_contents($this->struct, -12, 8, SEEK_END))
 			return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
-		$tableStruct = explode(P_SSEP, $tableStruct);
-		$tableStruct = end($tableStruct);
 		$tableStruct = unpack('N*', desanitize($tableStruct));
 		return array(
-			'history' => $tableStruct[2] + $tableStruct[3], 
-			'unique' => $tableStruct[2]
+			'history' => $tableStruct[1] + $tableStruct[2], 
+			'unique' => $tableStruct[1]
 		);
 	}
 
@@ -320,7 +319,6 @@ class Mimesis{
 
 		$structOut = explode(P_SSEP, $structOut);
 		$structOut[0] = explode(P_FSEP, substr($structOut[0], 0, -2));
-		$structOut[0] = array_flip($structOut[0]);
 		
 		$structOut[1] = desanitize($structOut[1]);
 		$structOut[2] = desanitize($structOut[2]);
@@ -333,13 +331,12 @@ class Mimesis{
 			$polarizer = $polarizer->getValues() . P_SSEP;
 			$length = strlen($polarizer);
 			
-			if(array_key_exists($rowLabel, $structOut[0])){
+			if(false !== $key = array_search($rowLabel, $structOut[0])){
 				$structOut[4][3]++;
-				$key = $structOut[0][$rowLabel];
 			}else{
 				$key = $structOut[4][2];
 				$structOut[4][2]++;
-				$structOut[0][$rowLabel] = $key;
+				$structOut[0][] = $rowLabel;
 			}
 			$key *= 4;
 			$temp = pack('N', $structOut[4][1] & M_PMASK);
@@ -356,7 +353,6 @@ class Mimesis{
 			$tableOut .= $polarizer;
 		}
 		
-		$structOut[0] = array_flip($structOut[0]);
 		$structOut[0] = implode(P_FSEP, $structOut[0]) . P_FSEP;
 		
 		$structOut[1] = sanitize($structOut[1]);
@@ -421,18 +417,15 @@ class Mimesis{
 				}
 			}
 		}else{
-			$tableStruct[0] = array_flip($tableStruct[0]);
-			$row = sanitize(serialize($row));
-			if(array_key_exists($row, $tableStruct[0])){
-				$key = $tableStruct[0][$row];
-				unset($tableStruct[0][$row]);
+			$key = sanitize(serialize($row));
+			if(false !== $key = array_search($key, $tableStruct[0])){
+				unset($tableStruct[0][$key]);
 				$key *= 4;
 				$tableStruct[1] = substr_replace($tableStruct[1], '', $key, 4);
 				$tableStruct[2] = substr_replace($tableStruct[2], '', $key, 4);
 				$tableStruct[4][3]++;
 				$tableStruct[4][2]--;
 			}
-			$tableStruct[0] = array_flip($tableStruct[0]);
 		}
 
 		if(empty($tableStruct[0])){
@@ -474,39 +467,28 @@ class Mimesis{
 			return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 		$tableStruct = substr($tableStruct, 8, -4);
 		$tableStruct = explode(P_SSEP, $tableStruct);
-		$tableStruct[1] = desanitize($tableStruct[1]);
-		$tableStruct[2] = desanitize($tableStruct[2]);
-		$tableStruct[4] = desanitize($tableStruct[4]);
+		$tableStruct[1] = unpack('N*', desanitize($tableStruct[1]));
+		$tableStruct[2] = unpack('N*', desanitize($tableStruct[2]));
+		$tableStruct[4] = unpack('N*', desanitize($tableStruct[4]));
 		
 		$tableOut = '<?php /*';
 		
 		$offset = 8;
-		$length = strlen($tableStruct[1]);
-		for($i = 0; $i < $length; $i += 4){
-			$tableOut .= substr($rows, (ord($tableStruct[1][$i]) << 24) + (ord($tableStruct[1][$i + 1]) << 16) + (ord($tableStruct[1][$i + 2]) << 8) + ord($tableStruct[1][$i + 3]), (ord($tableStruct[2][$i]) << 24) + (ord($tableStruct[2][$i + 1]) << 16) + (ord($tableStruct[2][$i + 2]) << 8) + ord($tableStruct[2][$i + 3]));
-			$temp = pack('N', $offset & M_PMASK);
-			$tableStruct[1][$i] = $temp[0];
-			$tableStruct[1][$i + 1] = $temp[1];
-			$tableStruct[1][$i + 2] = $temp[2];
-			$tableStruct[1][$i + 3] = $temp[3];
-			$offset += (ord($tableStruct[2][$i]) << 24) + (ord($tableStruct[2][$i + 1]) << 16) + (ord($tableStruct[2][$i + 2]) << 8) + ord($tableStruct[2][$i + 3]);
+		foreach($tableStruct[2] as $key => $value){
+			$tableOut .= substr($rows, $tableStruct[1][$key], $value);
+			$tableStruct[1][$key] = pack('N', $offset & M_PMASK);
+			$tableStruct[2][$key] = pack('N', $value & M_PMASK);
+			$offset += $value;
 		}
 		
 		$tableOut .= '*/?>';
 		
-		$tableStruct[1] = sanitize($tableStruct[1]);
-		$tableStruct[2] = sanitize($tableStruct[2]);
+		$tableStruct[1] = sanitize(implode('', $tableStruct[1]));
+		$tableStruct[2] = sanitize(implode('', $tableStruct[2]));
 		
-		$temp = pack('N', $offset & M_PMASK);
-		$tableStruct[4][0] = $temp[0];
-		$tableStruct[4][1] = $temp[1];
-		$tableStruct[4][2] = $temp[2];
-		$tableStruct[4][3] = $temp[3];
-		$tableStruct[4][8] = "\x00";
-		$tableStruct[4][9] = "\x00";
-		$tableStruct[4][10] = "\x00";
-		$tableStruct[4][11] = "\x00";
-		$tableStruct[4] = sanitize($tableStruct[4]);
+		$tableStruct[4][1] = pack('N', $offset & M_PMASK);
+		$tableStruct[4][3] = "\x00\x00\x00\x00";
+		$tableStruct[4] = sanitize(implode('', $tableStruct[4]));
 		
 		$tableStruct = '<?php /*' . implode(P_SSEP, $tableStruct) . '*/?>';
 		
