@@ -9,8 +9,7 @@
 		private $_sets = array();
 		private $_deletes = array();
 		private $_transaction = false;
-		private $_lock = false;
-		private $_jsonEncode = false;		
+		private $_lock = false;				
 		
 		private static $_tables = array();
 		
@@ -56,11 +55,7 @@
 			var_dump($this->query());
 			echo "</pre>";
 			
-		}
-		
-		public function enableJsonEncode($bool) {
-			$this->_jsonEncode = $bool;
-		}
+		}		
 
 		public function lock($polling = 1){
 			if (!$this->_lock) {
@@ -393,44 +388,10 @@
 		}		
 		
 		private function _transformInputValue($value) {
-
-			if (!$this->_jsonEncode) {
-				return array($value,"native",null,0);
-			}
-
-			if (is_object($value)) {			
-				if(method_exists($value,"__sleep")) {
-					$value->__sleep();
-				}
-				return array(json_encode($value),"object",get_class($value),0);
-			}			
-			if (is_array($value)) {
-				return array(json_encode($value),"array",null,0);
-			}		
-			
-			return array($value,gettype($value),null,0);			
+			return array($value,0);						
 		}		
 		
-		private function _transformOutputValue($value) {
-
-			$type = $value[1];
-			if ($type === 'native') {
-				return array_shift($value);
-			}
-			if ($type === 'object') {
-				$tmp = new $value[2]();
-				foreach ((array)json_decode($value[0]) as $key => $value) {
-					$tmp->$key = $value;	
-				}
-				if(method_exists($tmp,"__wakeup")) {
-					$value->__wakeup();
-				}
-				return $tmp;
-			}
-			if ($type === 'array') {
-				return (array)json_decode($value[0]);
-			}
-			settype($value[0],$value[1]);
+		private function _transformOutputValue($value) {			
 			return array_shift($value);							
 		}
 		
