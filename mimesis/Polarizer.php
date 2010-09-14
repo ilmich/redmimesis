@@ -1,6 +1,6 @@
 <?php
 /*
-Copyright (c) 2008-2009 Grim Pirate <grimpirate_jrs@yahoo.com>
+Copyright (c) 2008-2010 Grim Pirate <grimpirate_jrs@yahoo.com>
 
 All rights reserved.
 
@@ -20,19 +20,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
  * This file contains the code for the Polarizer class
  * @author Grim Pirate <grimpirate_jrs@yahoo.com>
  * @link http://mimesis.110mb.com/
- * @version 1.03
+ * @version 1.04
  * @since 1.0n
  * @package Mimesis
  */
 
 error_reporting(E_ALL);
-
-/**
- * Defines the directory where this script resides
- *
- * @access private
- */
-define('POLARIZERCLASS_DIR', substr(realpath(__FILE__), 0, -1 * strlen(basename(__FILE__))));
 
 /**
  * Defines the delimeter character used to sanitize and separate polarized data
@@ -81,14 +74,14 @@ define('P_SSEP', "\x1a3");	// Section Separator
  *
  * @access private
  */
-require_once(POLARIZERCLASS_DIR . 'sanitize.php');
+require_once('sanitize.php');
 
 /**
  * Needed for desanitizing data
  *
  * @access private
  */
-require_once(POLARIZERCLASS_DIR . 'desanitize.php');
+require_once('desanitize.php');
 
 /**
  * The Polarizer class takes an array and decomposes its key=>value pairs into a serialized key string and a serialized value string. It also recombines said strings into the original array.

@@ -1,6 +1,6 @@
 <?php
 /*
-Copyright (c) 2008-2009 Grim Pirate <grimpirate_jrs@yahoo.com>
+Copyright (c) 2008-2010 Grim Pirate <grimpirate_jrs@yahoo.com>
 
 All rights reserved.
 
@@ -20,20 +20,12 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
  * This file contains the code for the Mimesis class
  * @author Grim Pirate <grimpirate_jrs@yahoo.com>
  * @link http://mimesis.110mb.com/
- * @version 2.12n
+ * @version 2.14
  * @since 1.0n
  * @package Mimesis
  */
 
 error_reporting(E_ALL);
-
-/**
- * Defines the directory where this script resides
- *
- * @access private
- */
-
-define('MIMESISCLASS_DIR', dirname(realpath(__FILE__)) . DIRECTORY_SEPARATOR);
 
 /**
  * An AND mask used to manipulate binary data
@@ -49,7 +41,7 @@ define('M_PMASK', 0x7fffffff);
  * @access private
  */
 
-require_once(MIMESISCLASS_DIR . 'Polarizer.php');
+require_once('Polarizer.php');
 
 /**
  * Class required to ensure file locking for atomicity of data
@@ -57,7 +49,7 @@ require_once(MIMESISCLASS_DIR . 'Polarizer.php');
  * @access private
  */
 
-require_once(MIMESISCLASS_DIR . 'Mutex.php');
+require_once('Mutex.php');
 
 /**
  * Function required for file writing
@@ -65,7 +57,7 @@ require_once(MIMESISCLASS_DIR . 'Mutex.php');
  * @access private
  */
 
-require_once(MIMESISCLASS_DIR . "file_place_contents.php");
+require_once('file_place_contents.php');
 
 /**
  * Function required for file writing/reading
@@ -73,7 +65,7 @@ require_once(MIMESISCLASS_DIR . "file_place_contents.php");
  * @access private
  */
 
-require_once(MIMESISCLASS_DIR . "file_cull_contents.php");
+require_once('file_cull_contents.php');
 
 /**
  * The Mimesis class contains all the methods necessary for manipulation of the flat file database.
@@ -143,14 +135,13 @@ class Mimesis{
 	 * A method that locks a table
 	 *
 	 * @param integer $polling specifies the sleep time (seconds) for the lock to wait in order to reacquire the lock if it fails.
-	 * @param integer $timeout specifies the duration of time (seconds) a lock should persist in case of a time out condition.
 	 * @return boolean TRUE on success FALSE on failure
 	 */
-	function lock($polling = 1, $timeout = 60){
+	function lock($polling = 1){
 		// For atomicity we have to lock the table
 		$mutex = new Mutex($this->table);
 
-		if(!$mutex->acquireLock($polling, $timeout))
+		if(!$mutex->acquireLock($polling))
 			return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 			
 		$this->mutex = $mutex;
@@ -326,6 +317,10 @@ class Mimesis{
 		$structOut[4] = unpack('N*', desanitize($structOut[4]));
 		
 		foreach($data as $rowLabel => $rowData){
+			// Parameters still to be checked
+			if(!is_array($rowData) || empty($rowData))
+				return !trigger_error('[' . basename(__FILE__) . '] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
+			
 			$rowLabel = sanitize(serialize($rowLabel));
 			$polarizer = new Polarizer($rowData);
 			$polarizer = $polarizer->getValues() . P_SSEP;
@@ -486,9 +481,7 @@ class Mimesis{
 		$tableStruct[1] = sanitize(implode('', $tableStruct[1]));
 		$tableStruct[2] = sanitize(implode('', $tableStruct[2]));
 		
-		$tableStruct[4][1] = pack('N', $offset & M_PMASK);
-		$tableStruct[4][3] = "\x00\x00\x00\x00";
-		$tableStruct[4] = sanitize(implode('', $tableStruct[4]));
+		$tableStruct[4] = sanitize(pack('N*', $offset & M_PMASK, $tableStruct[4][2] & M_PMASK) . "\x00\x00\x00\x00");
 		
 		$tableStruct = '<?php /*' . implode(P_SSEP, $tableStruct) . '*/?>';
 		

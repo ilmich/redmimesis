@@ -1,6 +1,6 @@
 <?php
 /*
-Copyright (c) 2008-2009 Grim Pirate <grimpirate_jrs@yahoo.com>
+Copyright (c) 2008-2010 Grim Pirate <grimpirate_jrs@yahoo.com>
 
 All rights reserved.
 

@@ -1,6 +1,6 @@
 <?php
 /*
-Copyright (c) 2008-2009 Grim Pirate <grimpirate_jrs@yahoo.com>
+Copyright (c) 2008-2010 Grim Pirate <grimpirate_jrs@yahoo.com>
 
 All rights reserved.
 
@@ -20,7 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
  * This file contains the code for the Mutex class
  * @author Grim Pirate <grimpirate_jrs@yahoo.com>
  * @link http://mimesis.110mb.com/
- * @version 1.1
+ * @version 1.2
  * @since 1.0n
  * @package Mimesis
  */
@@ -28,46 +28,30 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
 error_reporting(E_ALL);
 
 /**
- * Defines the directory where this script resides
- *
- * @access private
- */
-
-define('MUTEXCLASS_DIR', substr(realpath(__FILE__), 0, -1 * strlen(basename(__FILE__))));
-
-/**
- * The Mutex class creates a temporary file in order to ensure that exclusive locks are acquired whenever a file is accessed.
+ * The Mutex class creates a temporary directory in order to ensure that exclusive locks are acquired whenever a file is accessed.
  * @package Mimesis
  */
 
 class Mutex {
 	/**
-     * URI of the file to be locked
+     * URI of the directory to be locked
      *
      * @access private
      * @var string
      */
-	var $filename;
-	
-	/**
-	 * File pointer for the lock
-	 *
-	 * @access private
-	 * @var resource
-	 */
-	var $fp;
+	var $dirname;
 
 	/**
-	 * The constructor sets up all the parameters to create the lock. If $override is set to true the constructor will override the set max_execution_time constant and proceed to set its own time limit to the script (specified by $timeout). The lock's timeout will always be at least twice that of the max_execution_time.
+	 * The constructor sets up all the parameters to create the lock (always infinite).
 	 *
-	 * @param string $filename file to be locked
+	 * @param string $dirname file to be locked
 	 */
-	function Mutex($filename){
+	function Mutex($dirname){
 		/**
 		 * Parameter passing error handling
 		 */
 
-		if(!is_string($filename))
+		if(!is_string($dirname))
 			trigger_error('[Mutex.php] &lt; ' . __LINE__ . ' &gt;', E_USER_ERROR);
 
 		/**
@@ -75,35 +59,29 @@ class Mutex {
 		 */
 
 		// Append a '.lck' extension to filename for the locking mechanism
-		$this->filename = $filename . '.lck';
+		$this->dirname = $dirname . '.lck';
 	}
 
 	/**
 	 * A method that sets the lock on a file
 	 *
 	 * @param integer $polling specifies the sleep time (seconds) for the lock to wait in order to reacquire the lock if it fails.
-	 * @param integer $timeout specifies the duration of time (seconds) a lock should persist in case of a defunct condition.
-	 * @return boolean TRUE on success FALSE on failure
+	 * @return boolean TRUE on success or crash on failure
 	 */
-	function acquireLock($polling = 1, $timeout = 60){
+	function acquireLock($polling = 1){
 		/**
 		 * Parameter passing error handling
 		 */
 
 		if(!is_int($polling) || $polling < 1) $polling = 1;
-		if(!is_int($timeout) || $timeout < 1) $timeout = 60;
 
 		/**
 		 * Code section
 		 */
 		
-		// Create the locked file, use 'x' to detect a preexisting lock
-		while(false === $this->fp = @fopen($this->filename, "xb"))
+		// Create the directory and hang in the case of a preexisting lock
+		while(!@mkdir($this->dirname))
 			sleep($polling);
-
-		// If unable to write the timeout fail lock
-		if(!@fwrite($this->fp, (time() + $timeout)))
-			return !trigger_error('[Mutex.php] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 
 		// Successful lock
 		return true;
@@ -119,31 +97,11 @@ class Mutex {
 		 * Code section
 		 */
 
-		// If file close is unsuccessful fail release
-		if(!fclose($this->fp))
-			return !trigger_error('[Mutex.php] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
-		// Delete the file with the extension '.lck'
-		if(!@unlink($this->filename))
+		// Delete the directory with the extension '.lck'
+		if(!@rmdir($this->dirname))
 			return !trigger_error('[Mutex.php] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
 		// Successful release
 		return true;
-	}
-
-	/**
-	 * A method that returns the timeout value set to a lock
-	 *
-	 * @return integer seconds on success FALSE on failure
-	 */
-	function lockTime(){
-		/**
-		 * Code section
-		 */
-
-		// Retrieve the contents of the lock file
-		if(false === $timeout = file_get_contents($this->filename))
-			return !trigger_error('[Mutex.php] &lt; ' . __LINE__ . ' &gt;', E_USER_WARNING);
-		// Return the timeout value
-		return intval($timeout);
 	}
 }
 ?>
