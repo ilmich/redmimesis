@@ -20,7 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
  * This file contains the code for the Polarizer class
  * @author Grim Pirate <grimpirate_jrs@yahoo.com>
  * @link http://mimesis.110mb.com/
- * @version 1.04
+ * @version 1.05
  * @since 1.0n
  * @package Mimesis
  */
@@ -132,10 +132,10 @@ class Polarizer {
 		}else{
 			$this->keys = $keys;
 			$this->values = $values;
-			$limit = '0';
+			$limit = 0;
 			$output = ':{';
 			while(false !== $temp = strpos($keys, P_FSEP)){
-				$limit = bcadd($limit, '1');
+				$limit++;
 				$output .= substr($keys, 0, $temp);
 				$keys = substr($keys, $temp + 2);
 				$temp = strpos($values, P_FSEP);

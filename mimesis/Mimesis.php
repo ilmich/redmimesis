@@ -20,7 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
  * This file contains the code for the Mimesis class
  * @author Grim Pirate <grimpirate_jrs@yahoo.com>
  * @link http://mimesis.110mb.com/
- * @version 2.14
+ * @version 2.15
  * @since 1.0n
  * @package Mimesis
  */
@@ -478,8 +478,8 @@ class Mimesis{
 		
 		$tableOut .= '*/?>';
 		
-		$tableStruct[1] = sanitize(implode('', $tableStruct[1]));
-		$tableStruct[2] = sanitize(implode('', $tableStruct[2]));
+		$tableStruct[1] = sanitize(implode($tableStruct[1]));
+		$tableStruct[2] = sanitize(implode($tableStruct[2]));
 		
 		$tableStruct[4] = sanitize(pack('N*', $offset & M_PMASK, $tableStruct[4][2] & M_PMASK) . "\x00\x00\x00\x00");
 		

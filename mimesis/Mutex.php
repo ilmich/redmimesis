@@ -20,7 +20,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT OWNER/HOLDER "AS IS" AND ANY EXPRESS 
  * This file contains the code for the Mutex class
  * @author Grim Pirate <grimpirate_jrs@yahoo.com>
  * @link http://mimesis.110mb.com/
- * @version 1.2
+ * @version 1.3
  * @since 1.0n
  * @package Mimesis
  */
@@ -40,6 +40,13 @@ class Mutex {
      * @var string
      */
 	var $dirname;
+	
+	/**
+	 * The length of time the locking method should be allowed to execute in seconds
+	 * @access private
+	 * @var integer
+	 */
+	var $timeout;
 
 	/**
 	 * The constructor sets up all the parameters to create the lock (always infinite).
@@ -60,13 +67,16 @@ class Mutex {
 
 		// Append a '.lck' extension to filename for the locking mechanism
 		$this->dirname = $dirname . '.lck';
+		
+		// Determine maximum number of times to reacquire lock
+		$this->timeout = 1 + @intval(ini_get('max_execution_time'));
 	}
 
 	/**
 	 * A method that sets the lock on a file
 	 *
 	 * @param integer $polling specifies the sleep time (seconds) for the lock to wait in order to reacquire the lock if it fails.
-	 * @return boolean TRUE on success or crash on failure
+	 * @return boolean TRUE on success or FALSE on failure
 	 */
 	function acquireLock($polling = 1){
 		/**
@@ -80,11 +90,14 @@ class Mutex {
 		 */
 		
 		// Create the directory and hang in the case of a preexisting lock
-		while(!@mkdir($this->dirname))
+		for($i = 0; $i < $this->timeout; $i++){
+			if(@mkdir($this->dirname))
+				return TRUE;
 			sleep($polling);
+		}
 
-		// Successful lock
-		return true;
+		// Unsuccessful lock
+		return FALSE;
 	}
 
 	/**
